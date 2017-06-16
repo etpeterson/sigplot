@@ -5,6 +5,12 @@ library(ggcorrplot)
 library(plyr)
 library(reshape2)
 
+fnum2str <- function(numdf, c=0.05, fstr="%0.2f", estr="%0.1e"){
+  numstr <- ldply(numdf,function(num)if(is.na(num)){sprintf("N/A")}else if(num<=c){sprintf(estr,num)}else{sprintf(fstr,num)})
+  colnames(numstr) <- "value_str"
+  return(numstr)
+}
+
 sigframe <- function(fitlist, coef = "Pr(>|t|)"){  #coef = "Estimate" gives the direction of significance
   corrlist <- lapply(fitlist,function(ft)data.frame(t(data.frame(summary(ft)$coefficients[,coef]))))
   fitdf <- rbind.fill(corrlist)
@@ -24,6 +30,7 @@ sigplot <- function(fitdf){
   }
   fitmat <- as.matrix(fitdf)
   fitmelt <- melt(fitmat, varnames = c("Region","Variable"))
+  fitmelt <- cbind(fitmelt, fnum2str(fitmelt$value))
   if (hascoef){
     fitmelt <- cbind(fitmelt, est=sign(fitmeltcoef$value))
   }
@@ -40,6 +47,7 @@ sigplot <- function(fitdf){
   if (hascoef){
     gcp <- gcp + geom_segment(aes(x=as.numeric(Variable),xend=as.numeric(Variable),y=as.numeric(Region)+est*0.25,yend=as.numeric(Region)+est*0.45),arrow=arrow(type="closed",length=unit(0.03,"npc"))) #0.03 or 0.1, why changing?
   }
-  gcp <- gcp + geom_text(aes(x=Variable, y=Region, label = sprintf("%0.2f", round(value, digits = 2))), color = "red", size = 3) #color = "red"
+  gcp <- gcp + geom_text(aes(x=Variable, y=Region, label = value_str), color = "red", size = 3) #color = "red"
+  #gcp <- gcp + geom_text(aes(x=Variable, y=Region, label = sprintf("%0.2f", round(value, digits = 2))), color = "red", size = 3) #color = "red"
   return(gcp)
 }
